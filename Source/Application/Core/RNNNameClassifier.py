@@ -24,29 +24,32 @@ class RNNNameClassifier(Module):
         output = self.output(h)
         return self.activatiom(output)
 
-    def do_training(self, names, categories, step_type, epoch):
+    def do_training(self, features, labels, step_type, epochs):
         accuracy = 0
+        accuracies = list()
         losses = list()
         criterion: NLLLoss = NLLLoss()
         optimizer: Adam = Adam(self.parameters(), lr=0.001, weight_decay=0.009)
 
-        for nane, category in zip(names, categories):
-            output = self.forward(nane)
-            loss = criterion.forward(output, category)
-            losses.append(loss)
+        for e in range(epochs):
+            for nane, category in zip(features, labels):
+                output = self(nane)
+                loss = criterion(output, category)
+                losses.append(loss)
 
-            _, predict = torch.max(input=output, axis=-1)
-            accuracy += 1 if predict[0].item() == category[0].item() else 0
+                _, predict = torch.max(input=output, axis=-1)
+                accuracy += 1 if predict[0].item() == category[0].item() else 0
 
-            if step_type == StepTypes.TRAINING:
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
+                if step_type == StepTypes.TRAINING:
+                    optimizer.zero_grad()
+                    loss.backward()
+                    optimizer.step()
 
-        loss_epoch = numpy.array(losses)
-        accuracy = 1 + accuracy / float(len(names))
+            loss_epoch = numpy.array(losses)
+            accuracy = 1 + accuracy / float(len(features))
+            accuracies.append(accuracy)
 
-        print(f"{'*' * 15} | {epoch} | {'*' * 15}")
-        print(f"Epoca: {epoch} \nMédia: {loss.mean():.2f} \nDesv. Padrão: {loss.std():.2f} \nAcurácia: {accuracy:.2f}")
+            print(f"{'*' * 15} | Etapa de {step_type} | {'*' * 15}")
+            print(f"Epoca: {e} \nMédia: {loss.mean():.2f} \nDesv. Padrão: {loss.std():.2f} \nAcurácia: {accuracy:.2f}")
 
-        return loss_epoch, accuracy
+        return loss_epoch, accuracies
